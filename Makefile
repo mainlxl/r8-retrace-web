@@ -1,5 +1,5 @@
 BINARY ?= r8-retrace
-VERSION ?= v1.0.1
+VERSION ?= v1.0.2
 DEFAULT_PORT ?= 8082
 
 CMD=go build -ldflags "-X main.version=$(VERSION) -X main.defalutPort=$(DEFAULT_PORT)"

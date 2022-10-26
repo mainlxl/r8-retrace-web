@@ -9,7 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"runtime"
 	"strconv"
+	"time"
 )
 
 type RetraceInfo struct {
@@ -39,6 +41,14 @@ func main() {
 	for _, ip := range ips {
 		fmt.Printf("\thttp://%s:%s\n", ip, port)
 	}
+	go func() {
+		after := time.After(time.Second * 2)
+		<-after
+		if runtime.GOOS == "darwin" {
+			command := exec.Command("open", "http://127.0.0.1:"+port)
+			command.Run()
+		}
+	}()
 	panic(http.ListenAndServe(":"+port, nil))
 }
 
@@ -59,13 +69,14 @@ func retrace(w http.ResponseWriter, r *http.Request) {
 	requestInfo := RetraceInfo{}
 	json.Unmarshal(con, &requestInfo)
 
-	tempFile, err := os.CreateTemp("", "r8-retrace-log.tmp")
+	tempFile, err := os.CreateTemp("", "log")
 	if err != nil {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	//defer os.Remove(tempFile.Name())
 	tempFile.WriteString(requestInfo.Log)
+	tempFile.Close()
+	defer os.Remove(tempFile.Name())
 	command := exec.Command("retrace", requestInfo.Mapping, tempFile.Name())
 	androidHome := os.Getenv("ANDROID_HOME")
 	if len(androidHome) > 0 {
@@ -128,7 +139,7 @@ func index(w http.ResponseWriter, r *http.Request) {
             log: log,
         }).then(function (response) {
             let data = response.data;
-            document.getElementById("result").innerHTML = ("<p>" + data + "<p>").replaceAll("\t", "\n\t")
+            document.getElementById("result").innerHTML = "<p>" + data + "<p>"
             removeLoading(loading)
         }).catch(function (error) {
             document.getElementById("result").innerHTML = "<p>" + error.message + "<p>"
@@ -175,25 +186,53 @@ func index(w http.ResponseWriter, r *http.Request) {
 
     #mapping {
         width: auto;
+        min-width: 300px;
+        padding: 16px;
+    }
+
+    #submit {
+        padding: 16px;
     }
 
     #log {
         width: 100%;
         margin-top: 20px;
-        height: 100px;
+        padding: 16px;
+        height: 80px;
     }
 
     #result {
         width: 100%;
+        padding: 16px;
         min-height: 200px;
     }
+
+    .input {
+        border: 1px solid #ccc;
+        padding: 7px 0px;
+        border-radius: 3px;
+        padding-left: 5px;
+        -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+        -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
+        -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+        transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s
+    }
+
+    .input:focus {
+        border-color: #66afe9;
+        outline: 0;
+        -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(102, 175, 233, .6);
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(102, 175, 233, .6)
+    }
+
 </style>
 <body>
 
-<input id="mapping" type="text" placeholder="mapping文件"/>
-<input type="button" width="100%" value="提交" onclick="onRetrace(this)">
+<input id="mapping" class="input" type="text" placeholder="mapping文件"/>
+<input id="submit" type="button" value="转换" onclick="onRetrace(this)">
 <br/>
-<input id="log" type="text" placeholder="日志" height="500px" visibility="hidden"/>
+<textarea id="log" class="input" type="text" placeholder="日志"></textarea>
 <div id="result"/>
 </body>
 </html>
