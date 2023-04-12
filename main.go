@@ -28,7 +28,7 @@ var defalutPort = "8081"
 
 func main() {
 	port := flag.String("p", defalutPort, "端口号默认端口("+defalutPort+")")
-	mapping := flag.String("m", "", "混淆mapping文件路径")
+	mapping := flag.String("m", "", "混淆mapping文件路径(仅限mac用户)")
 	flag.Parse()
 	http.HandleFunc("/", index)
 	http.HandleFunc("/retrace", retrace)
