@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"time"
@@ -27,6 +28,7 @@ var defalutPort = "8081"
 
 func main() {
 	port := flag.String("p", defalutPort, "端口号默认端口("+defalutPort+")")
+	mapping := flag.String("m", "", "混淆mapping文件路径")
 	flag.Parse()
 	http.HandleFunc("/", index)
 	http.HandleFunc("/retrace", retrace)
@@ -43,7 +45,11 @@ func main() {
 		after := time.After(time.Second * 2)
 		<-after
 		if runtime.GOOS == "darwin" {
-			command := exec.Command("open", "http://127.0.0.1:"+(*port))
+			arg := "http://127.0.0.1:" + (*port)
+			if mappingAbs, err := filepath.Abs(*mapping); err == nil {
+				arg += "?path=" + mappingAbs
+			}
+			command := exec.Command("open", arg)
 			command.Run()
 		}
 	}()
